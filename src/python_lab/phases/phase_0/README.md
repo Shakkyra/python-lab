@@ -1,28 +1,23 @@
-# Phase 0
+# Phase 0 — Exercises
 
-**Goal:** Understand how Python actually executes code.
-
----
-
-## Lessons
-
-| File | Content |
-|------|-------------------|
-| `lessons/01_how_python_runs.py` | Scripts vs REPL, `__main__`, the execution model |
-| `lessons/02_variables_and_types.py` | Variables, built-in types, mutability |
-| `lessons/03_functions.py` | Defining functions, return values, basic arguments |
-
-Run each lesson file directly
-
-```bash
-python3 phases/phase_0/lessons/01_how_python_runs.py
-```
+**Goal:** Practice Python fundamentals through test-driven exercises.
 
 ---
 
 ## Exercises
 
-| File | Tests | What to Build |
-|------|-------|---------------|
-| `exercises/exercise_01.py` | `tests/test_exercise_01.py` | Variable assignments + type conversions |
-| `exercises/exercise_02.py` | `tests/test_exercise_02.py` | Three small pure functions |
+| File | Topics Covered |
+|------|----------------|
+| `exercises/test_01_variables_and_types.py` | `type()`, truthy/falsy, `int()` conversion, number classification, tuple swapping |
+| `exercises/test_02_functions.py` | `clamp`, `count_vowels`, `fizzbuzz`, `celsius_to_fahrenheit`, `first_and_last`, default arguments |
+| `exercises/test_03_pytest_practice.py` | Pytest skills: assertions, `@parametrize`, `@fixture`, `pytest.raises` |
+
+## Running Tests
+
+```bash
+# Run all phase 0 exercises
+pytest src/python_lab/phases/phase_0/exercises/ -v
+
+# Run a specific exercise
+pytest src/python_lab/phases/phase_0/exercises/test_01_variables_and_types.py -v
+```
