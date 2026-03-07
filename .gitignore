@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual environment
+.venv/
+
+# Lessons & knowledge checks (local only, not tracked)
+src/python_lab/phases/*/lessons/
+src/python_lab/phases/*/knowledge_check/
+
+# Exam files
+**/exam*.md
+**/final_exam*.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
