@@ -11,10 +11,6 @@ __pycache__/
 src/python_lab/phases/*/lessons/
 src/python_lab/phases/*/knowledge_check/
 
-# Exam files
-**/exam*.md
-**/final_exam*.md
-
 # IDE
 .idea/
 .vscode/
