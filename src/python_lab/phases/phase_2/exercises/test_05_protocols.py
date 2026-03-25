@@ -1,27 +1,18 @@
 import pytest
-from typing import TypeVar, Generic, Protocol, runtime_checkable, Callable
+from typing import Protocol, runtime_checkable, Callable, Iterator, TypeVar
 
 # Phase 2 — Exercise 05: Protocols & Type Hints
 # Run: pytest src/python_lab/phases/phase_2/exercises/test_05_protocols.py -v
 
-T = TypeVar("T")
 K = TypeVar("K")
-V = TypeVar("V")
-
 
 # ── 1. Pair[T] — generic container ────────────────────────────────
 
-class Pair(Generic[T]):
+class Pair[T]:
     """A pair of two values of the same type.
-
-    p = Pair(1, 2)
-    p.first    -> 1
-    p.second   -> 2
-    p.swap()   -> Pair(2, 1)
-    p.map(fn)  -> Pair(fn(first), fn(second))
-    p.to_list()-> [1, 2]
-
-    Pair("a", "b").map(str.upper) -> Pair("A", "B")
+    Args:
+        first (T): The first value in the pair.
+        second (T): The second value in the pair.
     """
     
     def __init__(self, first: T, second: T):
@@ -33,6 +24,7 @@ class Pair(Generic[T]):
 
     def map(self, fn: Callable[[T], K]) -> "Pair[K]":
         return Pair(fn(self.first), fn(self.second))
+
 
     def to_list(self) -> list[T]:
         return [self.first, self.second]
@@ -52,19 +44,22 @@ class Pair(Generic[T]):
 
 @runtime_checkable
 class Drawable(Protocol):
-    """Any object with draw() and bounding_box() is Drawable.
-    No inheritance required.
-    """
+    """Any object with draw() and bounding_box() is Drawable. No inheritance required."""
 
     def draw(self) -> str: ...
     def bounding_box(self) -> tuple[int, int, int, int]: ...
 
 
 def render_all(shapes: list['Drawable']) -> list[str]:
-    """Call .draw() on each shape. Return list of draw() results.
-    Works for ANY object that satisfies the Drawable protocol.
+    """Call .draw() on each shape and return a list of the results.
 
-    render_all([Circle(0,0,5), Square(1,1,4)]) -> ["Circle...", "Square..."]
+    Works for ANY object that satisfies the Drawable protocol without requiring inheritance.
+
+    Args:
+        shapes (list['Drawable']): A list of objects implementing the Drawable protocol.
+
+    Returns:
+        list[str]: A list of string representations derived from the draw() method.
     """
 
     return [shape.draw() for shape in shapes]
@@ -82,12 +77,15 @@ class Comparable(Protocol):
 
 def find_min(items: list['Comparable']) -> 'Comparable':
     """Return the minimum item using only __lt__ comparisons.
-    Works for any list of Comparable objects.
-    Raise ValueError if items is empty.
 
-    find_min([3, 1, 4, 1, 5]) -> 1
-    find_min(["banana", "apple", "cherry"]) -> "apple"
-    find_min([]) -> ValueError
+    Args:
+        items (list['Comparable']): A list of objects that implement the Comparable protocol.
+
+    Returns:
+        'Comparable': The smallest item found in the list.
+
+    Raises:
+        ValueError: If the provided items list is empty.
     """
 
     if not items:
@@ -101,26 +99,33 @@ def find_min(items: list['Comparable']) -> 'Comparable':
 
 # ── 4. InMemoryRepository[T] — generic storage ─────────────────
 
-class InMemoryRepository(Generic[T]):
-    """A generic key-value store.
+class InMemoryRepository[T]:
+    """A generic key-value store using an auto-incrementing integer ID.
 
-    repo = InMemoryRepository()
-    id1 = repo.save("Alice")     -> 1
-    id2 = repo.save("Bob")       -> 2
-    repo.get(1)                  -> "Alice"
-    repo.get(99)                 -> None
-    repo.delete(1)               -> True
-    repo.get(1)                  -> None
-    repo.list_all()              -> ["Bob"]
-    repo.count()                 -> 1
+    Attributes:
+        _store (dict[int, T]): Internal dictionary mapping IDs to stored items.
+        _deleted_ids (set[int]): Internal set accumulating soft-deleted IDs.
+        _next_id (int): The next available auto-incrementing ID.
     """
 
     def __init__(self):
         self._store: dict[int, T] = {}
+        self._deleted_ids: set[int] = set()
         self._next_id = 1
 
+    def __repr__(self):
+        active = {k: v for k, v in self._store.items() if k not in self._deleted_ids}
+        return f"InMemoryRepository({active})"
+
     def save(self, item: T) -> int:
-        """Store item, return its auto-assigned integer id."""
+        """Store an item in the repository.
+
+        Args:
+            item (T): The generic item to store.
+
+        Returns:
+            int: The auto-assigned integer ID for the stored item.
+        """
 
         id = self._next_id
         self._store[id] = item
@@ -129,26 +134,37 @@ class InMemoryRepository(Generic[T]):
 
     def get(self, id: int) -> "T | None":
         """Return item by id, or None if not found."""
-
+        if id in self._deleted_ids:
+            return None
         return self._store.get(id)
 
     def delete(self, id: int) -> bool:
-        """Delete item by id. Return True if it existed, False if not."""
+        """Perform a soft delete of an item by ID.
 
-        if id in self._store:
-            del self._store[id]
+        Args:
+            id (int): The integer ID of the item to delete.
+
+        Returns:
+            bool: True if the item existed and was deleted, False otherwise.
+        """
+        if id in self._store and id not in self._deleted_ids:
+            self._deleted_ids.add(id)
             return True
         return False
 
-    def list_all(self) -> list[T]:
-        """Return all stored items in insertion order."""
+    def list_all(self) -> Iterator[T]:
+        """Yield all active stored items lazily in insertion order.
 
-        return list(self._store.values())
+        Yields:
+            T: The next active item in the repository.
+        """
+        for id, item in self._store.items():
+            if id not in self._deleted_ids:
+                yield item
 
     def count(self) -> int:
         """Return number of stored items."""
-
-        return len(self._store)
+        return len(self._store) - len(self._deleted_ids)
 
 
 # ── 5. Strategy via Protocol — preview of Phase 3 ─────────────────
@@ -180,9 +196,16 @@ class PlainFormatter:
 
 
 def generate_report(data: dict, formatter: Formatter) -> str:
-    """Generate a report using the provided formatter.
-    Works with ANY formatter that satisfies the Formatter protocol.
-    This is Strategy Pattern.
+    """Generate a report string using the provided formatter strategy.
+
+    This demonstrates the Strategy Pattern using runtime structural subtyping.
+
+    Args:
+        data (dict): The payload containing the data to format.
+        formatter (Formatter): An object implementing the Formatter protocol.
+
+    Returns:
+        str: The structured report string generated by the chosen formatter.
     """
     
     return formatter.format(data)
@@ -303,10 +326,11 @@ class TestInMemoryRepository:
     def test_list_all(self, repo):
         repo.save("Alice")
         repo.save("Bob")
-        assert repo.list_all() == ["Alice", "Bob"]
+        assert list(repo.list_all()) == ["Alice", "Bob"]
+
 
     def test_list_all_empty(self, repo):
-        assert repo.list_all() == []
+        assert list(repo.list_all()) == []
 
     def test_count(self, repo):
         repo.save("Alice")
